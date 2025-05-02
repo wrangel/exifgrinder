@@ -2,20 +2,15 @@
 package ch.wrangel.toolbox.utilities
 
 import ch.wrangel.toolbox.Constants
-import ch.wrangel.toolbox.utilities.MiscUtilities.getProcessOutput
 import java.io.{BufferedWriter, File, FileWriter, InputStream}
 import java.net.URI
 import java.nio.file._
 import java.time.LocalDateTime
-import scala.collection.View
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters._
-import scala.jdk.StreamConverters._
 import scala.util.control.NonFatal
-import scala.util.{Try, Success, Failure}
-import scala.sys.process._
 import wvlet.log.LogSupport
 
 

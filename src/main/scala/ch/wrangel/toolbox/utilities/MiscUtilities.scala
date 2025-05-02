@@ -5,11 +5,9 @@ import ch.wrangel.toolbox.Constants.ExifToolWebsite
 import java.io.InputStream
 import java.io.IOException
 import java.net.URI
-import java.net.URL
 import java.nio.file.Paths
-import org.apache.commons.text.StringEscapeUtils
 import org.htmlcleaner.{HtmlCleaner, TagNode}
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.{ListBuffer}
 import scala.io.StdIn
 import scala.sys.process.{Process, ProcessLogger}
 import scala.util.{Try, Success, Failure}

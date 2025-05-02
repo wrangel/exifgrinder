@@ -44,7 +44,8 @@ object UseCaseFactory extends LogSupport {
       Validate.run(directory, needsRenaming)
 
       if (treatExifTimestamps) {
-        MiscUtilities.getProcessOutput("""osascript -e 'quit app "Preview"'""")
+        val output = MiscUtilities.getProcessOutput("""osascript -e 'quit app "Preview"'""")
+        output.foreach(result => info(s"Process output: $result"))
       }
     }
 
@@ -136,8 +137,10 @@ object UseCaseFactory extends LogSupport {
                   }
                 }
                 if (exifResults.isEmpty) {
-                  treatedFiles.put(filePath, LocalDateTime.now)
+                  treatedFiles.put(filePath, LocalDateTime.now())
+                  (): Unit // Explicitly discarding the returned value
                 }
+
               case None =>
                 warn(s"File timestamp contains no valid timestamp")
                 treatedFiles.put(filePath, LocalDateTime.now)

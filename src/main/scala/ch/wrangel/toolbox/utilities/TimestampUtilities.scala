@@ -4,9 +4,8 @@ package ch.wrangel.toolbox.utilities
 import ch.wrangel.toolbox.Constants
 import java.nio.file.{Files, Path}
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, LocalTime, YearMonth, ZonedDateTime}
+import java.time.{LocalDateTime, YearMonth, ZonedDateTime}
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 import wvlet.log.LogSupport
 
