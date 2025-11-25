@@ -28,13 +28,13 @@ scalacOptions ++= Seq(
 
 Test / parallelExecution := true
 
-Compile / mainClass := Some("ch.wrangel.toolbox.Main")
-assembly / assemblyJarName := s"${name.value}-assembly-${version.value}.jar"
+ThisBuild / assemblyJarName := s"${name.value}-assembly-${version.value}.jar"
+
 assembly / mainClass := Some("ch.wrangel.toolbox.Main")
 
-ThisBuild / assemblyMergeStrategy := {
-  case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.discard
+assembly / assemblyMergeStrategy := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
   case "reference.conf" => MergeStrategy.concat
   case x if x.endsWith(".html") => MergeStrategy.discard
-  case _ => MergeStrategy.first
+  case x => MergeStrategy.first
 }
