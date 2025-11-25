@@ -1,6 +1,8 @@
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbt.Keys._
 
+enablePlugins(AssemblyPlugin)
+
 ThisBuild / scalaVersion := "3.3.5"
 ThisBuild / organization := "ch.wrangel.toolbox"
 ThisBuild / version := "4.0"
@@ -24,10 +26,11 @@ scalacOptions ++= Seq(
   "-Xmax-inlines:64"
 )
 
-// Enable parallel test execution
 Test / parallelExecution := true
 
-// Assembly merge strategy for handling duplicate files in the fat jar
+Compile / mainClass := Some("ch.wrangel.toolbox.Main")
+assembly / mainClass := Some("ch.wrangel.toolbox.Main")
+
 ThisBuild / assemblyMergeStrategy := {
   case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.discard
   case "reference.conf" => MergeStrategy.concat
