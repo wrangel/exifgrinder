@@ -18,8 +18,14 @@ import wvlet.log.LogSupport
 /** Utilities for file manipulation */
 object FileUtilities extends LogSupport {
 
-  /** Iterates through a directory and returns parallel collection of file Paths.
-   * Closes underlying streams safely.
+  /**
+   * Iterates through a directory returning a parallel collection of file Paths.
+   * Stream is safely closed after use.
+   *
+   * @param directory The directory to scan.
+   * @param walk True to scan recursively, false for single directory.
+   * @throws NoSuchFileException if the directory does not exist.
+   * @return Parallel sequence of Paths to files.
    */
   @throws[NoSuchFileException]
   def iterateFiles(directory: String, walk: Boolean = false): collection.parallel.ParSeq[Path] = {
@@ -38,14 +44,26 @@ object FileUtilities extends LogSupport {
     }
   }
 
-  /** Splits file path into base name and extension */
+  /**
+   * Splits a file path into base name and extension components.
+   *
+   * @param filePath Path to file.
+   * @param isPathNeeded True to split full path, false to split just filename.
+   * @return Sequence with base name and extension.
+   */
   def splitExtension(filePath: Path, isPathNeeded: Boolean): Seq[String] = {
     val relevant = if (isPathNeeded) filePath.toString else filePath.getFileName.toString
     val dotPos = relevant.lastIndexOf('.')
-    if (dotPos > 0) Seq(relevant.substring(0, dotPos), relevant.substring(dotPos)) else Seq(relevant, "")
+    if (dotPos > 0) Seq(relevant.substring(0, dotPos), relevant.substring(dotPos))
+    else Seq(relevant, "")
   }
 
-  /** Moves provided files list to target directory with error handling */
+  /**
+   * Moves a list of files to a target directory with error handling.
+   *
+   * @param files ListBuffer of Paths to move.
+   * @param fileParentPath Target directory path.
+   */
   def moveFiles(files: ListBuffer[Path], fileParentPath: Path): Unit = {
     if (files.nonEmpty) {
       Try(Files.createDirectories(fileParentPath)) match {
@@ -54,17 +72,18 @@ object FileUtilities extends LogSupport {
       }
       files.foreach { filePath =>
         Try(Files.move(filePath, fileParentPath.resolve(filePath.getFileName))) match {
-          case Failure(e: java.nio.file.NoSuchFileException) =>
-            error(s"File does not exist: $e")
-          case Failure(e) =>
-            error(s"Error moving file $filePath: $e")
+          case Failure(e: java.nio.file.NoSuchFileException) => error(s"File does not exist: $e")
+          case Failure(e) => error(s"Error moving file $filePath: $e")
           case Success(_) => ()
         }
       }
     }
   }
 
-  /** Creates or appends to the ExifTool config file safely */
+  /**
+   * Ensures ExifTool config file exists and contains required content.
+   * Creates or appends to the config file safely.
+   */
   def createOrAdaptExifConfigFile(): Unit = {
     val configPath = Constants.ExifToolConfigFilePath
     if (Files.notExists(configPath)) {
@@ -77,31 +96,53 @@ object FileUtilities extends LogSupport {
     }
   }
 
-  /** Writes string content to the file with resource safety */
+  /**
+   * Writes a string content to the ExifTool config file with resource safety.
+   *
+   * @param content String content to write.
+   */
   def writeToFile(content: String): Unit = {
     val result: Try[Unit] = Using(new BufferedWriter(new FileWriter(Constants.ExifToolConfigFilePath.toFile))) { bw =>
       bw.write(content)
     }
     result.fold(
       e => error(s"Failed to write to file: $e"),
-      _ => ()  // success case, do nothing
+      _ => ()  // success, do nothing
     )
   }
 
-  /** Processes zero-byte files by moving them to a specified folder */
+  /**
+   * Moves zero-byte length files in a directory to a special folder.
+   *
+   * @param directory Directory path as String.
+   */
   def handleZeroByteLengthFiles(directory: String): Unit = {
     val zeroFiles = iterateFiles(directory).filter(Files.size(_) == 0).seq.toList
     zeroFiles.foreach(fp => warn(s"$fp byte size is 0"))
     moveFiles(ListBuffer(zeroFiles: _*), Paths.get(directory, Constants.ZeroByteFolder))
   }
 
-  /** Prepares a file for further processing, optionally renaming */
+  /**
+   * Prepares a file for processing by optionally renaming with a timestamp.
+   *
+   * @param filePath Path to the file.
+   * @param ldt Timestamp to use.
+   * @param needsRenaming Flag if renaming is needed.
+   * @return Tuple of (prepared Path, timestamp).
+   */
   def prepareFile(filePath: Path, ldt: LocalDateTime, needsRenaming: Boolean): (Path, LocalDateTime) = {
     val path = if (needsRenaming) TimestampUtilities.writeTimestampInFilename(filePath, ldt) else filePath
     (path, ldt)
   }
 
-  /** Downloads a resource from URL to target file path with error handling */
+  /**
+   * Downloads a resource from a URL to a local file with error handling.
+   *
+   * @param sourceUrl Source URL string.
+   * @param targetFileName Target local file path string.
+   * @throws NoSuchFileException if downloading fails.
+   * @return Number of bytes copied.
+   */
   @throws[NoSuchFileException]
   def download(sourceUrl: String, targetFileName: String): Long = {
     val result: Try[Long] = Try {
@@ -118,5 +159,4 @@ object FileUtilities extends LogSupport {
       case Success(bytes) => bytes
     }
   }
-
 }
