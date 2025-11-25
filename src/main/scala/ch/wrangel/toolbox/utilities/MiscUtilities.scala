@@ -20,9 +20,13 @@ object MiscUtilities extends LogSupport {
 
   /** Recursively splits a string into multiple subsets based on indices. */
   def splitCollection(splitPoints: Seq[Int], s: String, result: ListBuffer[String]): Unit = {
-    val (element, rest) = s.splitAt(splitPoints.head)
-    if (rest.nonEmpty) splitCollection(splitPoints.tail, rest, result)
-    element +=: result
+    if (splitPoints.nonEmpty) {
+      val (element, rest) = s.splitAt(splitPoints.head)
+      if (rest.nonEmpty) splitCollection(splitPoints.tail, rest, result)
+      element +=: result
+    } else {
+      if (s.nonEmpty) s +=: result
+    }
   }
 
   /** Executes a shell command capturing standard output if successful. */

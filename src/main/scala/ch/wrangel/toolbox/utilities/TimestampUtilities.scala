@@ -9,14 +9,18 @@ import java.time.{LocalDateTime, YearMonth, ZonedDateTime}
 import scala.util.{Try, Success, Failure}
 import wvlet.log.LogSupport
 
-/** Holds a collection of timestamp utilities */
+/**
+ * Utility object holding timestamp related functions for reading, writing,
+ * validating, and manipulating timestamps across files and metadata.
+ */
 object TimestampUtilities extends LogSupport {
 
   /**
-   * Write timestamps to files according to date map.
+   * Writes timestamps to files according to the provided mapping.
+   * Can write both Exif and Mac OS timestamps.
    *
-   * @param fileToDateMap Map of file paths to corresponding timestamps.
-   * @param treatExifTimestamps Whether to write Exif timestamps (default true).
+   * @param fileToDateMap Map where keys are file paths and values timestamps to write.
+   * @param treatExifTimestamps Flag indicating whether to write Exif timestamps additionally.
    */
   def writeTimestamps(fileToDateMap: Map[Path, LocalDateTime], treatExifTimestamps: Boolean = true): Unit = {
     if (fileToDateMap.nonEmpty) {
@@ -26,9 +30,9 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Writes Mac OS timestamps to files.
+   * Writes Mac OS timestamps to the specified files using SetFile tool.
    *
-   * @param fileNameToTimestampMap Map of file paths to timestamps.
+   * @param fileNameToTimestampMap Map from file to timestamp to set.
    */
   def writeMacTimestamps(fileNameToTimestampMap: Map[Path, LocalDateTime]): Unit = {
     for {
@@ -46,9 +50,9 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Writes Exif timestamps to files.
+   * Writes ExifTool timestamps over the specified files with overwrite.
    *
-   * @param fileNameToTimestampMap Map of file paths to timestamps.
+   * @param fileNameToTimestampMap Map from file to timestamp to set via ExifTool.
    */
   private def writeExifTimestamps(fileNameToTimestampMap: Map[Path, LocalDateTime]): Unit = {
     fileNameToTimestampMap.foreach { case (filePath, ldt) =>
@@ -66,9 +70,9 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Creates reference dates (if not existing) for given file.
+   * Creates reference dates for missing exif tags in a file.
    *
-   * @param filePath Path to the file.
+   * @param filePath Path to file for which to create missing dates.
    */
   private def createDates(filePath: Path): Unit = {
     Constants.ReferenceExifTimestamps.foreach { ret =>
@@ -80,11 +84,11 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Prepends timestamp to filename if not already present.
+   * Writes a timestamp prefix in the filename if not already present.
    *
-   * @param filePath Path to file.
-   * @param ldt The timestamp to add in filename.
-   * @return New file path with timestamp or original if unchanged.
+   * @param filePath Original file path.
+   * @param ldt The timestamp to prepend.
+   * @return New path with renamed file or original if unchanged.
    */
   def writeTimestampInFilename(filePath: Path, ldt: LocalDateTime): Path = {
     val filePathComponents = FileUtilities.splitExtension(filePath, isPathNeeded = false)
@@ -109,9 +113,9 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Detects hidden timestamps or dates in filenames within a directory.
+   * Detects hidden timestamps or dates in filenames in a directory.
    *
-   * @param directory Directory path as string.
+   * @param directory Directory to scan.
    * @return Map of file paths to detected LocalDateTimes.
    */
   def detectHiddenTimestampsOrDates(directory: String): Map[Path, LocalDateTime] = {
@@ -130,10 +134,10 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Identifies candidate files having timestamp or date pattern in filenames.
+   * Identifies candidate files with timestamps or dates in filenames.
    *
-   * @param directory Directory path as string.
-   * @return Map of file paths to candidate timestamp/date strings.
+   * @param directory Directory path.
+   * @return Map of file paths to extracted candidate timestamp strings.
    */
   def identifyCandidates(directory: String): Map[Path, String] = {
     FileUtilities.iterateFiles(directory)
@@ -150,23 +154,30 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Extracts timestamp components from a candidate string for validation.
+   * Extracts components of a timestamp candidate as sequences of integers.
+   * Uses safe integer conversion to avoid exceptions.
    *
-   * @param candidate Candidate timestamp string.
-   * @return Sequence of component integer sequences.
+   * @param candidate Timestamp candidate string.
+   * @return Sequence of integer sequences representing timestamp parts.
    */
   def extractTimestampComponents(candidate: String): Seq[Seq[Int]] = {
     val components = scala.collection.mutable.ListBuffer[String]()
     MiscUtilities.splitCollection(Seq(4, 2, 2, 2, 2, 2), candidate, components)
-    val c = components.map(_.toInt).toSeq
-    Seq(c, Seq(c.head, c(2), c(1), c(3), c(4), c(5)))
+    val validInts = components.map(_.toIntOption)
+    if (validInts.forall(_.isDefined)) {
+      val c = validInts.flatten.toSeq
+      Seq(c, Seq(c.head, c(2), c(1), c(3), c(4), c(5)))
+    } else {
+      warn(s"Invalid timestamp components in candidate: $candidate")
+      Seq.empty
+    }
   }
 
   /**
-   * Validates if the candidate string is a valid timestamp or date.
+   * Validates if a timestamp candidate string represents a valid timestamp.
    *
-   * @param candidate Candidate timestamp string.
-   * @return True if valid, else false.
+   * @param candidate Timestamp candidate string.
+   * @return Boolean indicating validity.
    */
   def isValidCandidate(candidate: String): Boolean = {
     extractTimestampComponents(candidate).exists { components =>
@@ -177,18 +188,18 @@ object TimestampUtilities extends LogSupport {
               (1 to YearMonth.of(components.head, components(1)).lengthOfMonth).contains(value)
             }.getOrElse(false)
           } else {
-            Constants.TimestampRanges(idx).contains(value)
+            Constants.TimestampRanges.lift(idx).exists(_.contains(value))
           }
       }
     }
   }
 
   /**
-   * Adds time component to a date string using Exif timestamps or defaults.
+   * Adds time components to a date string by leveraging Exif timestamps or defaults.
    *
    * @param filePath Path to file.
-   * @param date Date string.
-   * @return Optional LocalDateTime with time added.
+   * @param date Date string extracted.
+   * @return Optional LocalDateTime with added time or None.
    */
   def addTimeToDate(filePath: Path, date: String): Option[LocalDateTime] = {
     val coincidingExifTimestamps = readExifTimestamps(filePath).values.flatten.toList
@@ -210,7 +221,7 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Reads Exif timestamps from a file using ExifTool output parsing.
+   * Reads all Exif timestamps from a file by parsing ExifTool output.
    *
    * @param filePath Path to file.
    * @return Map of Exif tag keys to optional LocalDateTime values.
@@ -224,20 +235,20 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Builds ExifTool command to extract all relevant timestamps.
+   * Constructs the ExifTool command for extracting all timestamps.
    *
    * @param filePath Path to file.
-   * @return Command string.
+   * @return String command.
    */
   def constructExifToolGetAllTimestampsCommand(filePath: Path): String = 
     s"""${Constants.ExifToolBaseCommand} -time:all -m -s "$filePath""""
 
   /**
-   * Converts string to LocalDateTime using multiple formatters, safely.
+   * Converts a string to LocalDateTime using multiple timestamp formatters safely.
    *
    * @param timestamp Timestamp string.
    * @param dtf DateTimeFormatter to use.
-   * @return Optional LocalDateTime if parsing succeeded.
+   * @return Option of LocalDateTime if successfully parsed.
    */
   def convertStringToTimestamp(timestamp: String, dtf: DateTimeFormatter): Option[LocalDateTime] = {
     Try(LocalDateTime.parse(timestamp, dtf)) match {
@@ -250,10 +261,10 @@ object TimestampUtilities extends LogSupport {
   }
 
   /**
-   * Extracts all existing Exif timestamps from parsed map.
+   * Extracts existing LocalDateTime values from timestamp map.
    *
-   * @param timestamps Map of tag ids to optional LocalDateTimes.
-   * @return Iterable of existing LocalDateTime values.
+   * @param timestamps Map of tag keys to optional LocalDateTime values.
+   * @return Iterable of valid LocalDateTime values.
    */
   def getExifTimestamps(timestamps: Map[String, Option[LocalDateTime]]): Iterable[LocalDateTime] = {
     timestamps.values.flatten
