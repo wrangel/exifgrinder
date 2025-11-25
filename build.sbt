@@ -29,6 +29,7 @@ scalacOptions ++= Seq(
 Test / parallelExecution := true
 
 Compile / mainClass := Some("ch.wrangel.toolbox.Main")
+assembly / assemblyJarName := s"${name.value}-assembly-${version.value}.jar"
 assembly / mainClass := Some("ch.wrangel.toolbox.Main")
 
 ThisBuild / assemblyMergeStrategy := {
