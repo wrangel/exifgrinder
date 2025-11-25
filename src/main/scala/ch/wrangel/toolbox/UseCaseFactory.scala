@@ -1,4 +1,5 @@
 // UseCaseFactory.scala
+
 package ch.wrangel.toolbox
 
 import ch.wrangel.toolbox.utilities.{FileUtilities, MiscUtilities, StringUtilities, TimestampUtilities}
@@ -11,9 +12,25 @@ import scala.jdk.CollectionConverters._
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable.ListBuffer
 
+/**
+ * Factory object for creating and managing different UseCases.
+ * Implements the factory pattern to return use case instances based on a command string.
+ */
 object UseCaseFactory extends LogSupport {
 
+  /**
+   * Use case implementation that uses Exif timestamps as reference.
+   */
   private object ExifAsReference extends UseCase {
+
+    /**
+     * Runs the use case to process files in a directory with Exif timestamps as reference.
+     * Handles principal and secondary timestamps, renaming, writing timestamps, and validation.
+     *
+     * @param directory Target directory string path.
+     * @param needsRenaming Flag indicating if file renaming is required.
+     * @param treatExifTimestamps Flag to process secondary Exif timestamps.
+     */
     def run(directory: String,
             needsRenaming: Boolean,
             treatExifTimestamps: Boolean): Unit = {
@@ -49,6 +66,7 @@ object UseCaseFactory extends LogSupport {
       }
     }
 
+    /** Handles principal Exif timestamps for a file, optionally renaming */
     private def handlePrincipalTimestamps(
         principalTimestamps: Map[String, Option[LocalDateTime]],
         filePath: Path,
@@ -62,6 +80,7 @@ object UseCaseFactory extends LogSupport {
         .getOrElse(Seq.empty)
     }
 
+    /** Handles secondary Exif timestamps with optional user feedback for selection */
     private def handleSecondaryTimestamps(
         secondaryTimestamps: Map[String, Option[LocalDateTime]],
         filePath: Path,
@@ -95,24 +114,46 @@ object UseCaseFactory extends LogSupport {
     }
   }
 
+  /**
+   * Use case implementation using filenames as reference timestamp.
+   */
   private object FileNameAsReference extends UseCase {
+
+    /**
+     * Runs the use case processing files by detecting timestamps hidden in filenames.
+     *
+     * @param directory Target directory path.
+     * @param needsRenaming Flag indicating if renaming is required.
+     * @param treatExifTimestamps Whether to treat Exif timestamps (usage varies).
+     */
     def run(directory: String,
             needsRenaming: Boolean,
             treatExifTimestamps: Boolean): Unit = {
       val treatedFiles = new ConcurrentHashMap[Path, LocalDateTime]()
-      
+
       TimestampUtilities
         .detectHiddenTimestampsOrDates(directory)
         .foreach { case (filePath, ldt) =>
           treatedFiles.put(filePath, ldt)
         }
-      
+
       TimestampUtilities.writeTimestamps(treatedFiles.asScala.toMap, treatExifTimestamps)
       Validate.run(directory)
     }
   }
 
+  /**
+   * Use case implementation validating timestamp consistency.
+   */
   private object Validate extends UseCase {
+
+    /**
+     * Runs validation logic across files in the directory.
+     *
+     * @param directory Directory path.
+     * @param needsRenaming Flag indicating file renaming.
+     * @param treatExifTimestamps Flag to treat Exif timestamps.
+     */
     def run(directory: String,
             needsRenaming: Boolean = false,
             treatExifTimestamps: Boolean = false): Unit = {
@@ -157,11 +198,7 @@ object UseCaseFactory extends LogSupport {
       )
     }
 
-    /** Attempts to extract a [[LocalDateTime]] from the file name
-      *
-      * @param filePath [[Path]] to the file
-      * @return Optional [[LocalDateTime]] extracted from file name
-      */
+    /** Extracts timestamp from filename if possible */
     private def checkFileTimestamp(filePath: Path): Option[LocalDateTime] = {
       val fileName: String =
         FileUtilities.splitExtension(filePath, isPathNeeded = false).head
@@ -178,12 +215,7 @@ object UseCaseFactory extends LogSupport {
       )
     }
 
-    /** Checks if shell command returns valid stdout
-      *
-      * @param filePath [[Path]] to the file
-      * @param tag Relevant exif timestamp tag
-      * @return Optional [[Array[String]]] containing the stdout
-      */
+    /** Checks validity of Exif timestamp via shell output */
     private def checkValidity(filePath: Path,
                               tag: String): Option[Array[String]] = {
       StringUtilities
@@ -193,11 +225,7 @@ object UseCaseFactory extends LogSupport {
         .headOption
     }
 
-    /** Attempts to convert the exif timestamps to [[LocalDateTime]]
-      *
-      * @param element Output of exiftool stdout
-      * @return Valid [[LocalDateTime]]
-      */
+    /** Converts Exif output to LocalDateTime */
     private def convertExifTimestamp(
         element: Array[String]): Option[LocalDateTime] = {
       Constants.TimestampFormatters
@@ -210,13 +238,7 @@ object UseCaseFactory extends LogSupport {
         .headOption
     }
 
-    /** Compares exif timestamps with timestamp extracted from file name
-      *
-      * @param filePath [[Path]] to the file
-      * @param filenameTimestamp [[LocalDateTime]] representing the timestamp extracted from the file name
-      * @param exifTimestamp [[LocalDateTime]] representing the exif timestamp
-      * @param tag Tag of the exif timestamp
-      */
+    /** Compares timestamps and logs mismatches */
     private def compareTimestamps(filePath: Path,
                                   filenameTimestamp: LocalDateTime,
                                   exifTimestamp: LocalDateTime,
@@ -233,11 +255,13 @@ object UseCaseFactory extends LogSupport {
     }
   }
 
-  /** Factory method
-    *
-    * @param useCase Applicable use case
-    * @return Use case singleton
-    */
+  /**
+   * Factory method to obtain use cases by identifier.
+   *
+   * @param useCase String representing use case identifier.
+   * @return UseCase instance.
+   * @throws IllegalArgumentException for unknown use cases.
+   */
   def apply(useCase: String): UseCase = useCase match {
       case "exif" => ExifAsReference
       case "file" => FileNameAsReference
