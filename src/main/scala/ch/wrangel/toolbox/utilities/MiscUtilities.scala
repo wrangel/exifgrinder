@@ -18,14 +18,25 @@ import wvlet.log.LogSupport
 /** Utilities for miscellaneous functionality */
 object MiscUtilities extends LogSupport {
 
-  /** Splits a string into multiple subsets by provided indices (tail-recursive) */
+  /**
+   * Recursively splits a string into multiple subsets according to the provided indices.
+   *
+   * @param splitPoints Sequence of indices to split at.
+   * @param s The string to split.
+   * @param result ListBuffer to accumulate split substrings.
+   */
   def splitCollection(splitPoints: Seq[Int], s: String, result: ListBuffer[String]): Unit = {
     val (element, rest) = s.splitAt(splitPoints.head)
     if (rest.nonEmpty) splitCollection(splitPoints.tail, rest, result)
     element +=: result
   }
 
-  /** Executes a shell command and returns optional stdout */
+  /**
+   * Executes a shell command and captures its standard output if successful.
+   *
+   * @param command The shell command to execute.
+   * @return Optional string containing the standard output if the command succeeds; otherwise None.
+   */
   def getProcessOutput(command: String): Option[String] = {
     val stdout = new StringBuilder
     val stderr = new StringBuilder
@@ -41,7 +52,13 @@ object MiscUtilities extends LogSupport {
     }
   }
 
-  /** Requests correct user input from valid options (tail-recursive) */
+  /**
+   * Prompts users for valid input within a specified set of options recursively until valid input is received.
+   *
+   * @param message Prompt message for the user.
+   * @param validRange Sequence of acceptable input strings.
+   * @return The valid input string provided by the user.
+   */
   @scala.annotation.tailrec
   def getFeedback(message: String = "", validRange: Seq[String]): String = {
     val addendum = s"Please select one of (${validRange.mkString(", ")})\n"
@@ -49,12 +66,19 @@ object MiscUtilities extends LogSupport {
     if (validRange.contains(feedback)) feedback else getFeedback(validRange = validRange)
   }
 
-  /** Returns current installed ExifTool version as Double */
+  /**
+   * Retrieves the current installed ExifTool version as a double.
+   *
+   * @return The ExifTool version or -1 if not found.
+   */
   def getPresentExifToolVersion: Double = getProcessOutput(
     s"${Constants.ExifToolBaseCommand.split(Constants.BlankSplitter).head.trim} -ver"
   ).getOrElse("-1").toDouble
 
-  /** Checks and installs or updates ExifTool if newer version available */
+  /**
+   * Checks the ExifTool website for a newer version and downloads it if the local version is outdated.
+   * Handles exceptions and connection errors gracefully.
+   */
   def handleExifTool(): Unit = {
     try {
       val url = URI.create(Constants.ExifToolWebsite).toURL()
