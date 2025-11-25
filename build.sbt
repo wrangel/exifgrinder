@@ -1,10 +1,11 @@
 import sbtassembly.AssemblyPlugin.autoImport._
+import sbt.Keys._
 
-scalaVersion := "3.3.5"
+ThisBuild / scalaVersion := "3.3.5"
+ThisBuild / organization := "ch.wrangel.toolbox"
+ThisBuild / version := "4.0"
 
 name := "exifgrinder"
-organization := "ch.wrangel.toolbox"
-version := "3.0"
 
 libraryDependencies ++= Seq(
   "net.sourceforge.htmlcleaner" % "htmlcleaner" % "2.29",
@@ -23,9 +24,13 @@ scalacOptions ++= Seq(
   "-Xmax-inlines:64"
 )
 
+// Enable parallel test execution
+Test / parallelExecution := true
+
+// Assembly merge strategy for handling duplicate files in the fat jar
 ThisBuild / assemblyMergeStrategy := {
   case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.discard
-  case x => 
-    val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
-    oldStrategy(x)
+  case "reference.conf" => MergeStrategy.concat
+  case x if x.endsWith(".html") => MergeStrategy.discard
+  case _ => MergeStrategy.first
 }
