@@ -25,10 +25,13 @@ Fully rewritten for Scala 3 compliance.
 
 ## Installation and Build
 
-Ensure you have [sbt](https://www.scala-sbt.org/) installed.  
-To build the executable JAR with dependencies, run:
+Ensure you have [sbt](https://www.scala-sbt.org/) installed.
+
+To build the executable fat JAR, run:
 
 `sbt assembly`
+
+This creates a single deployable JAR including all dependencies in the `target/scala-3.x/` directory.
 
 ---
 
@@ -61,7 +64,38 @@ Run the built jar using Java:
 | `-f`       | Use timestamps from file names only                             |
 | `-v`       | Validate timestamps between filename and EXIF, move mismatches  |
 
-Replace `<directory>` with your folder path.
+Replace `<directory>` with your target folder path.
+
+---
+
+## Running and Debugging in Visual Studio Code
+
+### Prerequisites
+
+- Install [Visual Studio Code](https://code.visualstudio.com/) and [Metals - Scala language server](https://marketplace.visualstudio.com/items?itemName=scalameta.metals).
+- Have [sbt](https://www.scala-sbt.org/) installed.
+- Open the project folder in VSCode and ensure Metals imports the build and compiles successfully.
+
+### Running Without Debugging
+
+- Open terminal inside VSCode (`Ctrl + ``).
+- Run:
+
+`sbt run`
+
+- When prompted, enter options similar to:
+
+`-f -r -e /path/to/your/image/directory`
+
+- Output appears in the terminal.
+
+### Debugging Using launch.json
+
+Create a `.vscode/launch.json` file with:
+
+`{ “version”: “0.2.0”, “configurations”: [ { “type”: “scala”, “request”: “launch”, “name”: “Run exifgrinder Main”, “mainClass”: “ch.wrangel.toolbox.Main”, “args”: ”-f”, “-r”, “-e”, “/path/to/your/image/directory”, “jvmOptions”: [], “env”: {} } ] }`
+
+Launch debugging by pressing `F5` or from the Debug pane in VSCode.
 
 ---
 
@@ -79,5 +113,4 @@ Contributions and feedback are welcome! Please submit issues and pull requests v
 
 ## Additional Resources
 
-- See [docs](link-to-docs) for detailed information.
-- Report issues and request features on [GitHub repository](link-to-repo).
+- Report issues and request features on [GitHub repository](https://github.com/wrangel/exifgrinder).
