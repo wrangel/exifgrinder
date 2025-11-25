@@ -41,8 +41,8 @@ object Constants {
   final val ExifToolBaseCommand: String =
     s"/usr/local/bin/exiftool -config $ExifToolConfigFilePath"
 
-  /** Official ExifTool website URL */
-  final val ExifToolWebsite: String = "https://exiftool.org"
+  /** Official ExifTool download website URL */
+  final val macPkgUrl: String = "https://sourceforge.net/projects/exiftool/files/"
 
   /** Identifier for the Mac hdutil command-line tool */
   final val HdiUtilIdentifier: String = "hdiutil"
