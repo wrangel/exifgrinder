@@ -161,8 +161,9 @@ object TimestampUtilities extends LogSupport {
    * @return Sequence of integer sequences representing timestamp parts.
    */
   def extractTimestampComponents(candidate: String): Seq[Seq[Int]] = {
+    val digitsOnly = candidate.replaceAll("[^0-9]", "")
     val components = scala.collection.mutable.ListBuffer[String]()
-    MiscUtilities.splitCollection(Seq(4, 2, 2, 2, 2, 2), candidate, components)
+    MiscUtilities.splitCollection(Seq(4, 2, 2, 2, 2, 2), digitsOnly, components)
     val validInts = components.map(_.toIntOption)
     if (validInts.forall(_.isDefined)) {
       val c = validInts.flatten.toSeq
