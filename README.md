@@ -93,7 +93,7 @@ Replace `<directory>` with your target folder path.
 
 Create a `.vscode/launch.json` file with:
 
-`{ “version”: “0.2.0”, “configurations”: [ { “type”: “scala”, “request”: “launch”, “name”: “Run exifgrinder Main”, “mainClass”: “ch.wrangel.toolbox.Main”, “args”: ”-f”, “-r”, “-e”, “/path/to/your/image/directory”, “jvmOptions”: [], “env”: {} } ] }`
+`{“version”: “0.2.0”,“configurations”: [{“type”: “scala”,“request”: “launch”,“name”: “Run exifgrinder Main”,“mainClass”: “ch.wrangel.toolbox.Main”,“args”: ”-f”, “-r”, “-e”, “/path/to/your/image/directory”,“jvmOptions”: [],“env”: {}}]}`
 
 Launch debugging by pressing `F5` or from the Debug pane in VSCode.
 
