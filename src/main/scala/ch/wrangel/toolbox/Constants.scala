@@ -151,7 +151,7 @@ object Constants {
   final val TimestampRanges: Seq[Range] = {
     val today: LocalDateTime = LocalDateTime.now
     Seq(
-      today.minusYears(100).getYear to today.getYear,
+      2000 to 2099, // Covers two-digit years as 20xx
       1 to 12,
       1 to 31, // to be refined during validation by month
       0 to 23,
