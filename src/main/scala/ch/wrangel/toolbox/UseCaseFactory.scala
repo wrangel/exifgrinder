@@ -1,5 +1,3 @@
-// UseCaseFactory.scala
-
 package ch.wrangel.toolbox
 
 import ch.wrangel.toolbox.utilities.{FileUtilities, MiscUtilities, StringUtilities, TimestampUtilities}
@@ -7,7 +5,6 @@ import java.nio.file.{Path, Paths}
 import java.time.LocalDateTime
 import scala.util.{Failure, Success, Try}
 import wvlet.log.LogSupport
-import scala.collection.parallel.CollectionConverters._
 import scala.jdk.CollectionConverters._
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable.ListBuffer
@@ -23,18 +20,7 @@ object UseCaseFactory extends LogSupport {
    */
   private object ExifAsReference extends UseCase {
 
-    /**
-     * Runs the use case to process files in a directory with Exif timestamps as reference.
-     * Handles principal and secondary timestamps, renaming, writing timestamps, and validation.
-     *
-     * @param directory Target directory string path.
-     * @param needsRenaming Flag indicating if file renaming is required.
-     * @param treatExifTimestamps Flag to process secondary Exif timestamps.
-     */
-    def run(directory: String,
-            needsRenaming: Boolean,
-            treatExifTimestamps: Boolean): Unit = {
-
+    def run(directory: String, needsRenaming: Boolean, treatExifTimestamps: Boolean): Unit = {
       val treatedFiles = new ConcurrentHashMap[Path, LocalDateTime]()
       val treatedFiles2 = new ConcurrentHashMap[Path, LocalDateTime]()
 
@@ -66,7 +52,6 @@ object UseCaseFactory extends LogSupport {
       }
     }
 
-    /** Handles principal Exif timestamps for a file, optionally renaming */
     private def handlePrincipalTimestamps(
         principalTimestamps: Map[String, Option[LocalDateTime]],
         filePath: Path,
@@ -80,7 +65,6 @@ object UseCaseFactory extends LogSupport {
         .getOrElse(Seq.empty)
     }
 
-    /** Handles secondary Exif timestamps with optional user feedback for selection */
     private def handleSecondaryTimestamps(
         secondaryTimestamps: Map[String, Option[LocalDateTime]],
         filePath: Path,
@@ -114,21 +98,8 @@ object UseCaseFactory extends LogSupport {
     }
   }
 
-  /**
-   * Use case implementation using filenames as reference timestamp.
-   */
   private object FileNameAsReference extends UseCase {
-
-    /**
-     * Runs the use case processing files by detecting timestamps hidden in filenames.
-     *
-     * @param directory Target directory path.
-     * @param needsRenaming Flag indicating if renaming is required.
-     * @param treatExifTimestamps Whether to treat Exif timestamps (usage varies).
-     */
-    def run(directory: String,
-            needsRenaming: Boolean,
-            treatExifTimestamps: Boolean): Unit = {
+    def run(directory: String, needsRenaming: Boolean, treatExifTimestamps: Boolean): Unit = {
       val treatedFiles = new ConcurrentHashMap[Path, LocalDateTime]()
 
       TimestampUtilities
@@ -142,21 +113,8 @@ object UseCaseFactory extends LogSupport {
     }
   }
 
-  /**
-   * Use case implementation validating timestamp consistency.
-   */
   private object Validate extends UseCase {
-
-    /**
-     * Runs validation logic across files in the directory.
-     *
-     * @param directory Directory path.
-     * @param needsRenaming Flag indicating file renaming.
-     * @param treatExifTimestamps Flag to treat Exif timestamps.
-     */
-    def run(directory: String,
-            needsRenaming: Boolean = false,
-            treatExifTimestamps: Boolean = false): Unit = {
+    def run(directory: String, needsRenaming: Boolean = false, treatExifTimestamps: Boolean = false): Unit = {
       val treatedFiles = new ConcurrentHashMap[Path, LocalDateTime]()
 
       FileUtilities
@@ -166,11 +124,11 @@ object UseCaseFactory extends LogSupport {
           if (Constants.isNotExiftoolTmpFile(filePath.getFileName.toString)) {
             checkFileTimestamp(filePath) match {
               case Some(filenameTimestamp) =>
-                val exifResults = Constants.ReferenceExifTimestamps.par.flatMap { tag =>
+                val exifResults = Constants.ReferenceExifTimestamps.flatMap { tag =>
                   checkValidity(filePath, tag).flatMap { element =>
                     convertExifTimestamp(element) match {
                       case Some(exifTimestamp) =>
-                        Some(compareTimestamps(filePath, filenameTimestamp, exifTimestamp, tag))
+                        Some(compareTimestamps(filePath, filenameTimestamp, exifTimestamp, tag, treatedFiles))
                       case None =>
                         warn(s"$tag cannot be converted properly")
                         None
@@ -179,26 +137,24 @@ object UseCaseFactory extends LogSupport {
                 }
                 if (exifResults.isEmpty) {
                   treatedFiles.put(filePath, LocalDateTime.now())
-                  (): Unit // Explicitly discarding the returned value
                 }
 
               case None =>
                 warn(s"File timestamp contains no valid timestamp")
-                treatedFiles.put(filePath, LocalDateTime.now)
+                treatedFiles.put(filePath, LocalDateTime.now())
             }
           } else {
             warn(s"File is a remnant exiftool temp file")
-            treatedFiles.put(filePath, LocalDateTime.now)
+            treatedFiles.put(filePath, LocalDateTime.now())
           }
         }
 
       FileUtilities.moveFiles(
-        ListBuffer(treatedFiles.asScala.map(_._1).toSeq: _*),
+        ListBuffer(treatedFiles.asScala.map(_._1).toSeq*),
         Paths.get(directory, Constants.UnsuccessfulFolder)
       )
     }
 
-    /** Extracts timestamp from filename if possible */
     private def checkFileTimestamp(filePath: Path): Option[LocalDateTime] = {
       val fileName: String =
         FileUtilities.splitExtension(filePath, isPathNeeded = false).head
@@ -206,18 +162,14 @@ object UseCaseFactory extends LogSupport {
         Try {
           fileName.substring(0, fileName.indexOf(Constants.PartitionString))
         } match {
-          case Success(s: String) =>
-            s
-          case Failure(_) =>
-            fileName
+          case Success(s: String) => s
+          case Failure(_) => fileName
         },
         Constants.TimestampFormatters("file")
       )
     }
 
-    /** Checks validity of Exif timestamp via shell output */
-    private def checkValidity(filePath: Path,
-                              tag: String): Option[Array[String]] = {
+    private def checkValidity(filePath: Path, tag: String): Option[Array[String]] = {
       StringUtilities
         .prepareExifToolOutput(
           s"""${Constants.ExifToolBaseCommand} -s -$tag "$filePath""""
@@ -225,47 +177,33 @@ object UseCaseFactory extends LogSupport {
         .headOption
     }
 
-    /** Converts Exif output to LocalDateTime */
-    private def convertExifTimestamp(
-        element: Array[String]): Option[LocalDateTime] = {
+    private def convertExifTimestamp(element: Array[String]): Option[LocalDateTime] = {
       Constants.TimestampFormatters
-        .flatMap(
-          ts =>
-            TimestampUtilities.convertStringToTimestamp(
-              element.last,
-              ts._2
-          ))
+        .flatMap(ts => TimestampUtilities.convertStringToTimestamp(element.last, ts._2))
         .headOption
     }
 
-    /** Compares timestamps and logs mismatches */
-    private def compareTimestamps(filePath: Path,
-                                  filenameTimestamp: LocalDateTime,
-                                  exifTimestamp: LocalDateTime,
-                                  tag: String): Unit = {
-      info(
-        s"Comparing file timestamp $filenameTimestamp" +
-          s" with $tag $exifTimestamp"
-      )
+    private def compareTimestamps(
+      filePath: Path, 
+      filenameTimestamp: LocalDateTime, 
+      exifTimestamp: LocalDateTime, 
+      tag: String,
+      treatedFiles: ConcurrentHashMap[Path, LocalDateTime]
+    ): Unit = {
+      info(s"Comparing file timestamp $filenameTimestamp with $tag $exifTimestamp")
       if (!filenameTimestamp.equals(exifTimestamp)) {
         warn(s"Timestamps do not match")
-        treatedFiles += ((filePath, LocalDateTime.now))
-      } else
+        treatedFiles.put(filePath, LocalDateTime.now())
+      } else {
         info(s"Timestamps match")
+      }
     }
   }
 
-  /**
-   * Factory method to obtain use cases by identifier.
-   *
-   * @param useCase String representing use case identifier.
-   * @return UseCase instance.
-   * @throws IllegalArgumentException for unknown use cases.
-   */
   def apply(useCase: String): UseCase = useCase match {
-      case "exif" => ExifAsReference
-      case "file" => FileNameAsReference
-      case "validate" => Validate
-      case _ => throw new IllegalArgumentException(s"Unknown use case: $useCase")
-    }
+    case "exif" => ExifAsReference
+    case "file" => FileNameAsReference
+    case "validate" => Validate
+    case _ => throw new IllegalArgumentException(s"Unknown use case: $useCase")
+  }
 }
