@@ -1,5 +1,3 @@
-// utilities/TimeStampUtilities.scala
-
 package ch.wrangel.toolbox.utilities
 
 import ch.wrangel.toolbox.Constants
@@ -149,7 +147,6 @@ object TimestampUtilities extends LogSupport {
         }
       }
       .filter(_._2.nonEmpty)
-      .seq
       .toMap
   }
 
