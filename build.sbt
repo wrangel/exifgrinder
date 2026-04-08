@@ -9,9 +9,9 @@ name := "exifgrinder"
 
 libraryDependencies ++= Seq(
   "net.sourceforge.htmlcleaner" % "htmlcleaner" % "2.29",
-  "org.wvlet.airframe" %% "airframe-log" % "24.12.0",
-  "org.apache.commons" % "commons-text" % "1.12.0",
-  "org.scalatest" %% "scalatest" % "3.2.19" % Test
+  "org.wvlet.airframe" %% "airframe-log" % "2026.1.4",
+  "org.apache.commons" % "commons-text" % "1.15.0",
+  "org.scalatest" %% "scalatest" % "3.2.20" % Test
 )
 
 scalacOptions ++= Seq(
