@@ -9,7 +9,7 @@ name := "exifgrinder"
 
 libraryDependencies ++= Seq(
   "net.sourceforge.htmlcleaner" % "htmlcleaner" % "2.29",
-  "org.wvlet.airframe" %% "airframe-log" % "2026.1.4",
+  "org.wvlet.airframe" %% "airframe-log" % "2026.1.6",
   "org.apache.commons" % "commons-text" % "1.15.0",
   "org.scalatest" %% "scalatest" % "3.2.20" % Test
 )
@@ -26,13 +26,13 @@ scalacOptions ++= Seq(
 
 Test / parallelExecution := true
 
-ThisBuild / assemblyJarName := s"${name.value}-assembly-${version.value}.jar"
+assembly / assemblyJarName := s"${name.value}-assembly-${version.value}.jar"
 
 assembly / mainClass := Some("ch.wrangel.toolbox.Main")
 
 assembly / assemblyMergeStrategy := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-  case "reference.conf" => MergeStrategy.concat
-  case x if x.endsWith(".html") => MergeStrategy.discard
-  case x => MergeStrategy.first
+  case "reference.conf"              => MergeStrategy.concat
+  case x if x.endsWith(".html")      => MergeStrategy.discard
+  case _                             => MergeStrategy.first
 }
