@@ -1,7 +1,7 @@
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbt.Keys._
 
-ThisBuild / scalaVersion := "3.8.1"
+ThisBuild / scalaVersion := "3.8.3"
 ThisBuild / organization := "ch.wrangel.toolbox"
 ThisBuild / version := "4.0"
 
